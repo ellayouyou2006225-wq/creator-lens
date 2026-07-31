@@ -14,7 +14,7 @@ import {
   normalizeTopic,
   normalizeFormat,
   normalizeHook,
-} from '@/app/lib/metrics'
+} from './lib/metrics'
 
 const mockData = [
   { title: "Why I Quit My Job", views: 24500, likes: 1200, comments: 450, shares: 280, followers: 380, profileViews: 1250, avgWatchTime: 52, duration: 65, topic: "career", format: "personal story", hook: "personal confession", enjoyment: 5 },
