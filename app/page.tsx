@@ -1,913 +1,487 @@
 'use client'
 
-import { useState } from 'react'
-import {
-  VideoInput,
-  RawMetrics,
-  CoachingContext,
-  AppScreen,
-  AppState,
-} from './lib/schema'
-import {
-  findBiggestDifference,
-  identifyStrengths,
-  identifyContributors,
-  identifyConfounders,
-  generateExperiments,
-  generateCoachingSummary,
-  calculateDerivedMetrics,
-} from './lib/coaching'
-import { sampleContext } from './lib/demo'
+import { useState, useRef } from 'react'
+
+const mockData = [
+  { title: "Why I Quit My Job", views: 24500, likes: 1200, comments: 450, shares: 280, followers: 380, profileViews: 1250, avgWatchTime: 52, duration: 65, topic: "career", format: "personal story", hook: "personal confession", enjoyment: 5 },
+  { title: "5 Resume Mistakes", views: 18300, likes: 720, comments: 220, shares: 95, followers: 95, profileViews: 580, avgWatchTime: 28, duration: 42, topic: "career", format: "list", hook: "question", enjoyment: 3 },
+  { title: "Day in My Life - Recruiting", views: 32100, likes: 1480, comments: 620, shares: 310, followers: 520, profileViews: 1890, avgWatchTime: 58, duration: 48, topic: "recruiting", format: "personal story", hook: "personal confession", enjoyment: 5 },
+  { title: "10 Productivity Tips", views: 15200, likes: 610, comments: 180, shares: 72, followers: 62, profileViews: 320, avgWatchTime: 22, duration: 38, topic: "productivity", format: "list", hook: "question", enjoyment: 2 },
+  { title: "My Recruiting Story", views: 28900, likes: 1350, comments: 510, shares: 240, followers: 410, profileViews: 1520, avgWatchTime: 55, duration: 52, topic: "recruiting", format: "personal story", hook: "personal confession", enjoyment: 5 },
+  { title: "Career Advice Q&A", views: 12100, likes: 480, comments: 140, shares: 48, followers: 45, profileViews: 240, avgWatchTime: 18, duration: 35, topic: "career", format: "q&a", hook: "question", enjoyment: 3 },
+  { title: "First Day at New Job", views: 29300, likes: 1520, comments: 580, shares: 320, followers: 480, profileViews: 1680, avgWatchTime: 56, duration: 50, topic: "career", format: "personal story", hook: "personal confession", enjoyment: 5 },
+  { title: "How to Network", views: 19800, likes: 820, comments: 310, shares: 140, followers: 180, profileViews: 850, avgWatchTime: 32, duration: 45, topic: "career", format: "tutorial", hook: "tip", enjoyment: 4 },
+  { title: "Recruiting Fails", views: 35200, likes: 1680, comments: 720, shares: 410, followers: 620, profileViews: 2100, avgWatchTime: 60, duration: 58, topic: "recruiting", format: "personal story", hook: "controversial claim", enjoyment: 5 },
+  { title: "Workspace Tour", views: 8900, likes: 310, comments: 85, shares: 35, followers: 38, profileViews: 290, avgWatchTime: 25, duration: 32, topic: "general", format: "vlog", hook: "teaser", enjoyment: 2 }
+]
+
+interface Video {
+  title: string
+  views: number
+  likes: number
+  comments: number
+  shares: number
+  followers: number
+  profileViews: number
+  avgWatchTime: number
+  duration: number
+  topic: string
+  format: string
+  hook: string
+  enjoyment?: number
+  [key: string]: any
+}
+
+interface Insight {
+  finding: string
+  evidence: string
+  confidence: 'low' | 'moderate' | 'strong'
+  caveat?: string
+}
+
+interface Recommendation {
+  title: string
+  spec: string
+  why: string
+  expected: string
+  confounders: string[]
+}
 
 export default function Home() {
-  const [appState, setAppState] = useState<AppState>({
-    screen: 'landing',
-    strongVideo: null,
-    underperformingVideo: null,
-    context: {},
-    report: null,
-    error: null,
-  })
+  const [screen, setScreen] = useState<'onboarding' | 'upload' | 'insights'>('onboarding')
+  const [goal, setGoal] = useState<string | null>(null)
+  const [creatorName, setCreatorName] = useState<string>('')
+  const [videos, setVideos] = useState<Video[]>([])
+  const [insights, setInsights] = useState<Insight[]>([])
+  const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ===== HANDLERS =====
-
-  const handleStartAnalysis = () => {
-    setAppState(prev => ({ ...prev, screen: 'input', error: null }))
-  }
-
-  const handleTryDemo = () => {
-    const report = generateCoachingReport(sampleContext)
-    setAppState(prev => ({
-      ...prev,
-      screen: 'report',
-      strongVideo: sampleContext.strongVideo,
-      underperformingVideo: sampleContext.underperformingVideo,
-      context: sampleContext,
-      report,
+  const calculateInsights = (videoList: Video[], creatorGoal: string) => {
+    const metrics = videoList.map(v => ({
+      ...v,
+      engagementRate: (v.likes + v.comments + v.shares) / v.views,
+      followerConversion: v.followers / v.views,
+      profileConversion: v.profileViews / v.views,
+      watchPercentage: v.avgWatchTime / v.duration,
+      shareRate: v.shares / v.views
     }))
-  }
 
-  const handleVideoInputComplete = (strong: VideoInput, weak: VideoInput) => {
-    setAppState(prev => ({
-      ...prev,
-      screen: 'context',
-      strongVideo: strong,
-      underperformingVideo: weak,
-    }))
-  }
+    const newInsights: Insight[] = []
 
-  const handleContextComplete = (context: Partial<CoachingContext>) => {
-    setAppState(prev => ({
-      ...prev,
-      screen: 'questions',
-      context: { ...prev.context, ...context },
-    }))
-  }
-
-  const handleAnalyze = (goal: string, changes: string[], additionalContext?: string) => {
-    const fullContext: CoachingContext = {
-      strongVideo: appState.strongVideo!,
-      underperformingVideo: appState.underperformingVideo!,
-      primaryGoal: goal as any,
-      changesNoticed: changes,
-      additionalContext,
-    }
-
-    const report = generateCoachingReport(fullContext)
-
-    setAppState(prev => ({
-      ...prev,
-      screen: 'report',
-      context: fullContext,
-      report,
-    }))
-  }
-
-  const handleStartOver = () => {
-    setAppState({
-      screen: 'landing',
-      strongVideo: null,
-      underperformingVideo: null,
-      context: {},
-      report: null,
-      error: null,
+    // Format Analysis
+    const formats = [...new Set(videoList.map(v => v.format))]
+    const formatStats: Record<string, any> = {}
+    
+    formats.forEach(fmt => {
+      const group = metrics.filter(v => v.format === fmt)
+      if (group.length >= 3) {
+        formatStats[fmt] = {
+          count: group.length,
+          avgFollowerConv: group.reduce((a, v) => a + v.followerConversion, 0) / group.length,
+          avgEngagement: group.reduce((a, v) => a + v.engagementRate, 0) / group.length,
+          avgProfileConv: group.reduce((a, v) => a + v.profileConversion, 0) / group.length,
+          avgWatchPct: group.reduce((a, v) => a + v.watchPercentage, 0) / group.length,
+          enjoyment: group.reduce((a, v) => a + (v.enjoyment || 3), 0) / group.length
+        }
+      }
     })
-  }
 
-  // ===== SCREENS =====
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-teal-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">CreatorLens</h1>
-          <p className="text-gray-600">AI coaching for your TikTok content</p>
-        </div>
-
-        {/* Main Content */}
-        {appState.screen === 'landing' && (
-          <LandingScreen onStartAnalysis={handleStartAnalysis} onTryDemo={handleTryDemo} />
-        )}
-
-        {appState.screen === 'input' && (
-          <VideoInputScreen onComplete={handleVideoInputComplete} />
-        )}
-
-        {appState.screen === 'context' && appState.strongVideo && appState.underperformingVideo && (
-          <ContextScreen
-            strongVideo={appState.strongVideo}
-            weakVideo={appState.underperformingVideo}
-            onComplete={handleContextComplete}
-          />
-        )}
-
-        {appState.screen === 'questions' && (
-          <QuestionsScreen onAnalyze={handleAnalyze} />
-        )}
-
-        {appState.screen === 'report' && appState.report && (
-          <ReportScreen
-            report={appState.report}
-            strongVideo={appState.strongVideo!}
-            weakVideo={appState.underperformingVideo!}
-            onStartOver={handleStartOver}
-          />
-        )}
-
-        {appState.error && (
-          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
-            {appState.error}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ===== SCREEN COMPONENTS =====
-
-function LandingScreen({
-  onStartAnalysis,
-  onTryDemo,
-}: {
-  onStartAnalysis: () => void
-  onTryDemo: () => void
-}) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-        <h2 className="text-3xl font-bold mb-4 text-gray-900">
-          Turn your TikTok analytics into your next content decision
-        </h2>
-        <p className="text-lg text-gray-600 mb-8">
-          Upload analytics from one strong video and one underperforming video. CreatorLens will identify meaningful differences and give you three experiments for your next post.
-        </p>
-
-        <div className="bg-teal-50 rounded-lg p-6 mb-8 text-sm text-gray-700 space-y-2">
-          <div className="font-semibold text-teal-900 mb-3">How it works:</div>
-          <div>1️⃣ Enter metrics from your two videos</div>
-          <div>2️⃣ Verify the numbers and add creative context</div>
-          <div>3️⃣ Get your personalized coaching plan</div>
-        </div>
-
-        <div className="flex gap-4 flex-col sm:flex-row">
-          <button
-            onClick={onStartAnalysis}
-            className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 px-6 rounded-lg transition"
-          >
-            Analyze my videos
-          </button>
-          <button
-            onClick={onTryDemo}
-            className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 px-6 rounded-lg transition"
-          >
-            Try a sample analysis
-          </button>
-        </div>
-
-        <p className="text-sm text-gray-500 mt-6">
-          No account required. Your data is processed only for this analysis.
-        </p>
-      </div>
-    </div>
-  )
-}
-
-function VideoInputScreen({
-  onComplete,
-}: {
-  onComplete: (strong: VideoInput, weak: VideoInput) => void
-}) {
-  const [strongMetrics, setStrongMetrics] = useState<RawMetrics>({
-    views: null,
-    likes: null,
-    comments: null,
-    shares: null,
-    saves: null,
-    videoLengthSeconds: null,
-    avgWatchTimeSeconds: null,
-    completionRate: null,
-    newFollowers: null,
-  })
-
-  const [weakMetrics, setWeakMetrics] = useState<RawMetrics>({
-    views: null,
-    likes: null,
-    comments: null,
-    shares: null,
-    saves: null,
-    videoLengthSeconds: null,
-    avgWatchTimeSeconds: null,
-    completionRate: null,
-    newFollowers: null,
-  })
-
-  const [strongHook, setStrongHook] = useState('')
-  const [weakHook, setWeakHook] = useState('')
-  
-  const [extractingStrong, setExtractingStrong] = useState(false)
-  const [extractingWeak, setExtractingWeak] = useState(false)
-  const [errorStrong, setErrorStrong] = useState<string | null>(null)
-  const [errorWeak, setErrorWeak] = useState<string | null>(null)
-
-  const handleScreenshotUpload = async (
-    file: File,
-    isStrong: boolean
-  ) => {
-    const setExtracting = isStrong ? setExtractingStrong : setExtractingWeak
-    const setError = isStrong ? setErrorStrong : setErrorWeak
-    const setMetrics = isStrong ? setStrongMetrics : setWeakMetrics
-
-    setExtracting(true)
-    setError(null)
-
-    try {
-      const formData = new FormData()
-      formData.append('screenshot', file)
-
-      const response = await fetch('/api/extract', {
-        method: 'POST',
-        body: formData,
+    if (formatStats['personal story'] && formatStats['list']) {
+      const multiplier = (formatStats['personal story'].avgFollowerConv / formatStats['list'].avgFollowerConv).toFixed(1)
+      const personCount = formatStats['personal story'].count
+      const listCount = formatStats['list'].count
+      const confidence = personCount >= 6 && listCount >= 6 ? 'strong' : personCount >= 4 && listCount >= 4 ? 'moderate' : 'low'
+      
+      newInsights.push({
+        finding: `Personal stories generate ${multiplier}x more followers per 1,000 views`,
+        evidence: `Your ${personCount} personal-story videos averaged ${(formatStats['personal story'].avgFollowerConv * 100).toFixed(2)}% follower conversion vs ${(formatStats['list'].avgFollowerConv * 100).toFixed(2)}% for ${listCount} list videos.`,
+        confidence,
+        caveat: personCount > 0 && listCount > 0 ? 'Your personal stories also tend to focus more on recruiting, so the topic may be driving some of this difference.' : undefined
       })
+    }
 
-      const data = await response.json()
-
-      if (!data.success) {
-        setError(data.error || 'Extraction failed')
-        setExtracting(false)
-        return
+    // Topic Analysis
+    const topics = [...new Set(videoList.map(v => v.topic))]
+    const topicStats: Record<string, any> = {}
+    
+    topics.forEach(topic => {
+      const group = metrics.filter(v => v.topic === topic)
+      if (group.length >= 3) {
+        topicStats[topic] = {
+          count: group.length,
+          avgFollowerConv: group.reduce((a, v) => a + v.followerConversion, 0) / group.length,
+          avgProfileConv: group.reduce((a, v) => a + v.profileConversion, 0) / group.length,
+          avgViews: group.reduce((a, v) => a + v.views, 0) / group.length,
+          enjoyment: group.reduce((a, v) => a + (v.enjoyment || 3), 0) / group.length
+        }
       }
+    })
 
-      // Map extracted metrics to state
-      setMetrics({
-        views: data.metrics.views.value,
-        likes: data.metrics.likes.value,
-        comments: data.metrics.comments.value,
-        shares: data.metrics.shares.value,
-        saves: data.metrics.saves.value,
-        videoLengthSeconds: data.metrics.videoLengthSeconds.value,
-        avgWatchTimeSeconds: data.metrics.averageWatchTimeSeconds.value,
-        completionRate: data.metrics.completionRate.value,
-        newFollowers: data.metrics.newFollowers.value,
+    if (topicStats['recruiting'] && topicStats['career']) {
+      const recruitCount = topicStats['recruiting'].count
+      const careerCount = topicStats['career'].count
+      const confidence = recruitCount >= 6 && careerCount >= 6 ? 'strong' : 'moderate'
+      
+      newInsights.push({
+        finding: `Recruiting content attracts higher-quality followers`,
+        evidence: `Your ${recruitCount} recruiting videos: ${(topicStats['recruiting'].avgFollowerConv * 100).toFixed(2)}% follower conversion, ${(topicStats['recruiting'].avgProfileConv * 100).toFixed(2)}% profile visits. Career videos: ${(topicStats['career'].avgFollowerConv * 100).toFixed(2)}% conversion, ${(topicStats['career'].avgProfileConv * 100).toFixed(2)}% profile visits.`,
+        confidence,
+        caveat: `Your recruiting videos average ${Math.round(topicStats['recruiting'].avgViews).toLocaleString()} views vs ${Math.round(topicStats['career'].avgViews).toLocaleString()} for career content, so audience quality matters more than raw reach here.`
       })
+    }
 
-      // Show warnings if any
-      if (data.warnings && data.warnings.length > 0) {
-        setError(`Extracted successfully, but: ${data.warnings.join(', ')}. You can edit below.`)
+    // Hook Analysis (longer videos)
+    const longVideos = metrics.filter(v => v.duration > 45)
+    if (longVideos.length >= 6) {
+      const personalHooks = longVideos.filter(v => v.hook === 'personal confession')
+      const questionHooks = longVideos.filter(v => v.hook === 'question')
+      
+      if (personalHooks.length >= 3 && questionHooks.length >= 3) {
+        const personalWatch = personalHooks.reduce((a, v) => a + v.watchPercentage, 0) / personalHooks.length
+        const questionWatch = questionHooks.reduce((a, v) => a + v.watchPercentage, 0) / questionHooks.length
+        
+        if (personalWatch > questionWatch * 1.05) {
+          newInsights.push({
+            finding: `Personal confession hooks retain viewers better in videos over 45 seconds`,
+            evidence: `For videos >45 seconds: personal-confession hooks averaged ${(personalWatch * 100).toFixed(0)}% watch percentage (${personalHooks.length} videos) vs ${(questionWatch * 100).toFixed(0)}% for question hooks (${questionHooks.length} videos).`,
+            confidence: 'moderate',
+            caveat: 'Recruiting videos heavily use personal confessions, so the topic overlap makes it hard to isolate the hook effect.'
+          })
+        }
       }
-    } catch (err) {
-      setError('Upload failed. Try manual entry or try again.')
-    } finally {
-      setExtracting(false)
+    }
+
+    // Enjoyment Guard
+    const lowEnjoymentHighPerformance = Object.entries(formatStats).find(([fmt, stats]: any) => {
+      const enjoymentScore = stats.enjoyment || 3
+      return enjoymentScore < 3 && stats.avgFollowerConv > Object.values(formatStats).reduce((max: any, s: any) => Math.max(max, s.avgFollowerConv), 0) * 0.8
+    })
+
+    if (lowEnjoymentHighPerformance) {
+      const [fmt, stats] = lowEnjoymentHighPerformance
+      newInsights.push({
+        finding: `⚠️ Your highest-performing format (${fmt}) has the lowest enjoyment score`,
+        evidence: `"${fmt}" videos convert at ${(stats.avgFollowerConv * 100).toFixed(2)}% but you average only ${stats.enjoyment.toFixed(1)}/5 enjoyment. Sustainable growth needs content you actually want to make.`,
+        confidence: 'strong',
+        caveat: undefined
+      })
+    }
+
+    return newInsights.slice(0, 5)
+  }
+
+  const generateRecommendation = (videoList: Video[], creatorGoal: string): Recommendation | null => {
+    const metrics = videoList.map(v => ({
+      ...v,
+      followerConversion: v.followers / v.views,
+      profileConversion: v.profileViews / v.views,
+      watchPercentage: v.avgWatchTime / v.duration
+    }))
+
+    const formats = [...new Set(videoList.map(v => v.format))]
+    const topics = [...new Set(videoList.map(v => v.topic))]
+    
+    const formatStats: Record<string, any> = {}
+    formats.forEach(fmt => {
+      const group = metrics.filter(v => v.format === fmt)
+      if (group.length >= 3) {
+        formatStats[fmt] = {
+          count: group.length,
+          avgFollowerConv: group.reduce((a, v) => a + v.followerConversion, 0) / group.length
+        }
+      }
+    })
+
+    const topicStats: Record<string, any> = {}
+    topics.forEach(topic => {
+      const group = metrics.filter(v => v.topic === topic)
+      if (group.length >= 3) {
+        topicStats[topic] = {
+          count: group.length,
+          avgFollowerConv: group.reduce((a, v) => a + v.followerConversion, 0) / group.length
+        }
+      }
+    })
+
+    // Find best format
+    let bestFormat = Object.entries(formatStats).reduce((best: any, [fmt, stats]: any) => 
+      stats.avgFollowerConv > (best?.avgFollowerConv || 0) ? { fmt, ...stats } : best, null)
+
+    // Find best topic  
+    let bestTopic = Object.entries(topicStats).reduce((best: any, [topic, stats]: any) =>
+      stats.avgFollowerConv > (best?.avgFollowerConv || 0) ? { topic, ...stats } : best, null)
+
+    if (!bestFormat || !bestTopic || bestFormat.count < 3 || bestTopic.count < 3) return null
+
+    const confounders = []
+    const videosInBest = metrics.filter(v => v.format === bestFormat.fmt && v.topic === bestTopic.topic)
+    
+    if (videosInBest.length > 0) {
+      if (Math.max(...videosInBest.map(v => v.duration)) - Math.min(...videosInBest.map(v => v.duration)) > 15) {
+        confounders.push('video length varies significantly')
+      }
+      const avgViews = videosInBest.reduce((a, v) => a + v.views, 0) / videosInBest.length
+      if (videosInBest.some(v => v.views > avgViews * 2)) {
+        confounders.push('one viral outlier exists')
+      }
+    }
+
+    const hooks = [...new Set(metrics.filter(v => v.format === bestFormat.fmt).map(v => v.hook))]
+    const bestHook = hooks[Math.floor(Math.random() * hooks.length)]
+
+    return {
+      title: `Test a ${bestTopic.topic} ${bestFormat.fmt} with a ${bestHook} hook`,
+      spec: `Create a 40–55 second video about ${bestTopic.topic} in ${bestFormat.fmt} format using a ${bestHook} hook. Keep your posting time and CTA consistent.`,
+      why: `Your ${bestFormat.fmt} videos convert at ${(bestFormat.avgFollowerConv * 100).toFixed(2)}% and ${bestTopic.topic} content attracts your most engaged audience.`,
+      expected: `Target: 300+ profile views and 150+ followers per 1,000 views (based on your ${bestFormat.fmt} performance).`,
+      confounders: confounders.length > 0 ? confounders : ['none identified']
     }
   }
 
-  const handleContinue = () => {
-    // Validation
-    if (!strongMetrics.views || !weakMetrics.views) {
-      alert('Please enter views for both videos')
-      return
-    }
-    if (!strongHook || !weakHook) {
-      alert('Please enter hooks for both videos')
-      return
-    }
+  const handleLoadDemo = () => {
+    const calculatedInsights = calculateInsights(mockData, goal || 'follower growth')
+    const calculatedRec = generateRecommendation(mockData, goal || 'follower growth')
+    setVideos(mockData)
+    setInsights(calculatedInsights)
+    setRecommendation(calculatedRec)
+    setScreen('insights')
+  }
 
-    const strong: VideoInput = {
-      performance: 'strong',
-      metrics: strongMetrics,
-      topic: '',
-      hook: strongHook,
-      format: 'talking-head',
-    }
+  const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-    const weak: VideoInput = {
-      performance: 'underperforming',
-      metrics: weakMetrics,
-      topic: '',
-      hook: weakHook,
-      format: 'talking-head',
-    }
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const csv = event.target?.result as string
+        const lines = csv.split('\n')
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+        
+        const parsed: Video[] = []
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue
+          const values = lines[i].split(',').map(v => v.trim())
+          const video: Video = { title: '', views: 0, likes: 0, comments: 0, shares: 0, followers: 0, profileViews: 0, avgWatchTime: 0, duration: 0, topic: '', format: '', hook: '' }
+          
+          headers.forEach((h, idx) => {
+            const val = values[idx]
+            if (h === 'title') video.title = val
+            else if (h === 'views') video.views = parseInt(val) || 0
+            else if (h === 'likes') video.likes = parseInt(val) || 0
+            else if (h === 'comments') video.comments = parseInt(val) || 0
+            else if (h === 'shares') video.shares = parseInt(val) || 0
+            else if (h === 'followers') video.followers = parseInt(val) || 0
+            else if (h === 'profileviews') video.profileViews = parseInt(val) || 0
+            else if (h === 'avgwatchtime') video.avgWatchTime = parseInt(val) || 0
+            else if (h === 'duration') video.duration = parseInt(val) || 0
+            else if (h === 'topic') video.topic = val
+            else if (h === 'format') video.format = val
+            else if (h === 'hook') video.hook = val
+            else if (h === 'enjoyment') video.enjoyment = parseInt(val) || 3
+          })
+          
+          if (video.title && video.views > 0) parsed.push(video)
+        }
 
-    onComplete(strong, weak)
+        if (parsed.length < 3) {
+          alert('Need at least 3 videos to analyze. CSV should have columns: title, views, likes, comments, shares, followers, profileViews, avgWatchTime, duration, topic, format, hook, enjoyment')
+          return
+        }
+
+        const calculatedInsights = calculateInsights(parsed, goal || 'follower growth')
+        const calculatedRec = generateRecommendation(parsed, goal || 'follower growth')
+        setVideos(parsed)
+        setInsights(calculatedInsights)
+        setRecommendation(calculatedRec)
+        setScreen('insights')
+      } catch (err) {
+        alert('Error parsing CSV. Make sure columns are: title, views, likes, comments, shares, followers, profileViews, avgWatchTime, duration, topic, format, hook, enjoyment')
+      }
+    }
+    reader.readAsText(file)
   }
 
   return (
-    <div className="space-y-8">
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Strong Video */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-xl font-bold text-green-700 mb-4">✓ Strong Video</h3>
-          <p className="text-sm text-gray-600 mb-6">One that performed better than usual</p>
-
-          {/* Screenshot Upload */}
-          <ScreenshotUpload
-            onUpload={file => handleScreenshotUpload(file, true)}
-            isExtracting={extractingStrong}
-            error={errorStrong}
-            onClearError={() => setErrorStrong(null)}
-          />
-
-          <MetricsForm
-            metrics={strongMetrics}
-            onChange={setStrongMetrics}
-            prefix="strong"
-          />
-
-          <div className="mt-6">
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              First 3 seconds (opening hook)
-            </label>
-            <p className="text-xs text-gray-500 mb-2">
-              What did viewers see first? This helps explain why they stayed or left.
-            </p>
-            <textarea
-              value={strongHook}
-              onChange={e => setStrongHook(e.target.value)}
-              placeholder="e.g., 'I quit my tech job after 5 years'"
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              rows={2}
-            />
+    <main className="min-h-screen bg-slate-50">
+      {screen === 'onboarding' && (
+        <div className="max-w-2xl mx-auto px-4 py-12">
+          <div className="mb-12">
+            <h1 className="text-4xl font-bold text-slate-900 mb-3">CreatorLens</h1>
+            <p className="text-lg text-slate-600">Understand your video patterns. Make better content decisions.</p>
           </div>
-        </div>
 
-        {/* Weak Video */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-xl font-bold text-orange-600 mb-4">✗ Underperforming Video</h3>
-          <p className="text-sm text-gray-600 mb-6">One that performed worse than expected</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-8 space-y-6">
+            <div>
+              <label className="block text-sm font-bold text-slate-900 mb-2">Your name (optional)</label>
+              <input 
+                type="text"
+                value={creatorName}
+                onChange={(e) => setCreatorName(e.target.value)}
+                placeholder="E.g., Ella"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+              />
+            </div>
 
-          {/* Screenshot Upload */}
-          <ScreenshotUpload
-            onUpload={file => handleScreenshotUpload(file, false)}
-            isExtracting={extractingWeak}
-            error={errorWeak}
-            onClearError={() => setErrorWeak(null)}
-          />
+            <div>
+              <label className="block text-sm font-bold text-slate-900 mb-4">What's your primary goal?</label>
+              <div className="space-y-3">
+                {[
+                  { value: 'reach', label: 'Reach', desc: 'Maximize views and impressions' },
+                  { value: 'followers', label: 'Follower growth', desc: 'Build your audience' },
+                  { value: 'engagement', label: 'Engagement', desc: 'More likes, comments, shares' },
+                  { value: 'conversions', label: 'Conversions', desc: 'Clicks, signups, sales' }
+                ].map(opt => (
+                  <label key={opt.value} className="flex items-center p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                    <input 
+                      type="radio" 
+                      name="goal" 
+                      value={opt.value}
+                      onChange={(e) => setGoal(e.target.value)}
+                      checked={goal === opt.value}
+                      className="w-4 h-4"
+                    />
+                    <div className="ml-3">
+                      <div className="font-medium text-slate-900">{opt.label}</div>
+                      <div className="text-sm text-slate-500">{opt.desc}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
 
-          <MetricsForm
-            metrics={weakMetrics}
-            onChange={setWeakMetrics}
-            prefix="weak"
-          />
-
-          <div className="mt-6">
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              First 3 seconds (opening hook)
-            </label>
-            <p className="text-xs text-gray-500 mb-2">
-              What did viewers see first?
-            </p>
-            <textarea
-              value={weakHook}
-              onChange={e => setWeakHook(e.target.value)}
-              placeholder="e.g., 'Today I want to share some helpful tips'"
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              rows={2}
-            />
+            <button
+              onClick={() => goal && setScreen('upload')}
+              disabled={!goal}
+              className="w-full bg-teal-600 text-white py-3 rounded-lg font-semibold hover:bg-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next step →
+            </button>
           </div>
-        </div>
-      </div>
-
-      <div className="bg-teal-50 border border-teal-200 rounded p-4 text-sm text-teal-900">
-        <strong>Tip:</strong> Upload a screenshot of your TikTok Analytics for quick extraction. All fields are editable.
-      </div>
-
-      <div className="flex gap-4">
-        <button
-          onClick={handleContinue}
-          className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded transition"
-        >
-          Continue
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function ScreenshotUpload({
-  onUpload,
-  isExtracting,
-  error,
-  onClearError,
-}: {
-  onUpload: (file: File) => void
-  isExtracting: boolean
-  error: string | null
-  onClearError: () => void
-}) {
-  return (
-    <div className="mb-6">
-      <label className="block text-sm font-semibold text-gray-900 mb-3">
-        Upload TikTok Analytics Screenshot (optional)
-      </label>
-      <input
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        onChange={e => {
-          const file = e.currentTarget.files?.[0]
-          if (file) {
-            onUpload(file)
-          }
-        }}
-        disabled={isExtracting}
-        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 disabled:opacity-50"
-      />
-      {isExtracting && <p className="text-xs text-teal-600 mt-2">Extracting metrics...</p>}
-      {error && (
-        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-          {error}
-          <button
-            onClick={onClearError}
-            className="ml-2 underline font-semibold"
-          >
-            Dismiss
-          </button>
         </div>
       )}
-    </div>
-  )
-}
 
-function MetricsForm({
-  metrics,
-  onChange,
-  prefix,
-}: {
-  metrics: RawMetrics
-  onChange: (m: RawMetrics) => void
-  prefix: string
-}) {
-  const handleChange = (key: keyof RawMetrics, value: string) => {
-    onChange({
-      ...metrics,
-      [key]: value === '' ? null : parseInt(value, 10),
-    })
-  }
+      {screen === 'upload' && (
+        <div className="max-w-2xl mx-auto px-4 py-12">
+          <h1 className="text-4xl font-bold text-slate-900 mb-3">Upload your video data</h1>
+          <p className="text-lg text-slate-600 mb-8">Add 20–100 videos to analyze patterns. Start with demo data to see it in action.</p>
 
-  const fields = [
-    { key: 'views', label: 'Views', placeholder: '12500' },
-    { key: 'likes', label: 'Likes', placeholder: '450' },
-    { key: 'comments', label: 'Comments', placeholder: '120' },
-    { key: 'shares', label: 'Shares', placeholder: '80' },
-    { key: 'newFollowers', label: 'Followers gained', placeholder: '50' },
-    { key: 'videoLengthSeconds', label: 'Video length (seconds)', placeholder: '45' },
-    { key: 'avgWatchTimeSeconds', label: 'Avg watch time (seconds)', placeholder: '40' },
-  ]
-
-  return (
-    <div className="space-y-3">
-      {fields.map(field => (
-        <div key={field.key}>
-          <label className="block text-sm font-medium text-gray-900 mb-1">
-            {field.label}
-          </label>
-          <input
-            type="number"
-            value={metrics[field.key as keyof RawMetrics] ?? ''}
-            onChange={e => handleChange(field.key as keyof RawMetrics, e.target.value)}
-            placeholder={field.placeholder}
-            className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-          />
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function ContextScreen({
-  strongVideo,
-  weakVideo,
-  onComplete,
-}: {
-  strongVideo: VideoInput
-  weakVideo: VideoInput
-  onComplete: (context: Partial<CoachingContext>) => void
-}) {
-  const [strongTopic, setStrongTopic] = useState('')
-  const [weakTopic, setWeakTopic] = useState('')
-  const [strongFormat, setStrongFormat] = useState<'talking-head'>('talking-head')
-  const [weakFormat, setWeakFormat] = useState<'talking-head'>('talking-head')
-
-  const formatOptions = [
-    'talking-head',
-    'voiceover',
-    'slideshow',
-    'vlog',
-    'screen-recording',
-    'interview',
-    'other',
-  ]
-
-  const handleContinue = () => {
-    if (!strongTopic || !weakTopic) {
-      alert('Please enter topics for both videos')
-      return
-    }
-
-    onComplete({
-      strongVideo: { ...strongVideo, topic: strongTopic, format: strongFormat as any },
-      underperformingVideo: { ...weakVideo, topic: weakTopic, format: weakFormat as any },
-    })
-  }
-
-  return (
-    <div className="space-y-8">
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Strong */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-xl font-bold text-green-700 mb-4">Strong Video</h3>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Topic</label>
-              <input
-                type="text"
-                value={strongTopic}
-                onChange={e => setStrongTopic(e.target.value)}
-                placeholder="e.g., Career transition"
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-8">
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center cursor-pointer hover:border-teal-600 hover:bg-teal-50 transition"
+              >
+                <div className="text-4xl mb-3">📤</div>
+                <p className="font-semibold text-slate-900 mb-1">Upload CSV</p>
+                <p className="text-sm text-slate-600">Click to select or drag and drop</p>
+              </div>
+              <input 
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCSVUpload}
+                className="hidden"
               />
+
+              <div className="mt-6 text-center">
+                <p className="text-sm text-slate-500 mb-4">— or —</p>
+                <button
+                  onClick={handleLoadDemo}
+                  className="w-full bg-teal-600 text-white py-4 rounded-lg font-semibold hover:bg-teal-700 transition"
+                >
+                  Load demo data (10 sample videos)
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Format</label>
-              <select
-                value={strongFormat}
-                onChange={e => setStrongFormat(e.target.value as any)}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              >
-                {formatOptions.map(opt => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
+            <div className="bg-slate-100 rounded-lg p-4">
+              <p className="text-sm font-semibold text-slate-900 mb-2">CSV Format</p>
+              <p className="text-xs text-slate-600 font-mono">title, views, likes, comments, shares, followers, profileViews, avgWatchTime, duration, topic, format, hook, enjoyment</p>
+              <p className="text-xs text-slate-600 mt-2">Example: "5 Tips Video", 10000, 500, 200, 100, 150, 250, 180, 30, "productivity", "list", "question", 4</p>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Weak */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-xl font-bold text-orange-600 mb-4">Underperforming Video</h3>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Topic</label>
-              <input
-                type="text"
-                value={weakTopic}
-                onChange={e => setWeakTopic(e.target.value)}
-                placeholder="e.g., Job search tips"
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Format</label>
-              <select
-                value={weakFormat}
-                onChange={e => setWeakFormat(e.target.value as any)}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              >
-                {formatOptions.map(opt => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
+      {screen === 'insights' && (
+        <div className="max-w-4xl mx-auto px-4 py-12">
+          <div className="mb-12">
+            <h1 className="text-4xl font-bold text-slate-900 mb-2">
+              Here's what's working{creatorName && `, ${creatorName}`}
+            </h1>
+            <p className="text-lg text-slate-600">Based on {videos.length} videos. Goal: {goal}</p>
           </div>
-        </div>
-      </div>
 
-      <div className="flex gap-4">
-        <button
-          onClick={handleContinue}
-          className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded transition"
-        >
-          Continue
-        </button>
-      </div>
-    </div>
-  )
-}
+          {insights.length > 0 ? (
+            <div className="space-y-4 mb-12">
+              {insights.map((insight, idx) => (
+                <div key={idx} className="bg-white rounded-xl border border-slate-200 p-6">
+                  <div className="flex justify-between items-start mb-3 gap-4">
+                    <h3 className="font-semibold text-slate-900 text-lg leading-tight">{insight.finding}</h3>
+                    <span className={`flex-shrink-0 text-xs font-semibold px-3 py-1 rounded whitespace-nowrap ${
+                      insight.confidence === 'strong' ? 'bg-teal-100 text-teal-900' :
+                      insight.confidence === 'moderate' ? 'bg-amber-100 text-amber-900' :
+                      'bg-slate-100 text-slate-900'
+                    }`}>
+                      {insight.confidence}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600 mb-3">{insight.evidence}</p>
+                  {insight.caveat && (
+                    <div className="bg-amber-50 border-l-4 border-amber-400 p-3">
+                      <p className="text-xs text-amber-900"><strong>⚠️ Caveat:</strong> {insight.caveat}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-slate-100 rounded-lg p-6 mb-12 text-center">
+              <p className="text-slate-600">Not enough data to generate insights yet. Try uploading 20+ videos.</p>
+            </div>
+          )}
 
-function QuestionsScreen({ onAnalyze }: { onAnalyze: (goal: string, changes: string[], context?: string) => void }) {
-  const [goal, setGoal] = useState('')
-  const [changes, setChanges] = useState<string[]>([])
-  const [additionalContext, setAdditionalContext] = useState('')
+          {recommendation && (
+            <div className="bg-gradient-to-br from-teal-50 to-teal-100/50 border border-teal-200 rounded-xl p-8">
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Your next experiment</h2>
+              
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-slate-900 mb-3">{recommendation.title}</h3>
+                <p className="text-sm text-slate-700 mb-4">{recommendation.why}</p>
+              </div>
 
-  const changeOptions = [
-    'Opening hook',
-    'Topic',
-    'Video length',
-    'Editing pace',
-    'Video format',
-    'Call to action',
-    'Posting time',
-    'Caption',
-    'Sound or music',
-    'Visual style',
-    'I am not sure',
-  ]
+              <div className="space-y-4 mb-6">
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 mb-1">YOUR SPEC</p>
+                  <p className="text-sm text-slate-900 bg-white/60 p-3 rounded">{recommendation.spec}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 mb-1">WHAT TO EXPECT</p>
+                  <p className="text-sm text-slate-900 bg-white/60 p-3 rounded">{recommendation.expected}</p>
+                </div>
+                {recommendation.confounders[0] !== 'none identified' && (
+                  <div>
+                    <p className="text-xs font-semibold text-slate-700 mb-1">⚠️ CONFOUNDING VARIABLES</p>
+                    <p className="text-sm text-slate-900 bg-white/60 p-3 rounded">{recommendation.confounders.join(', ')}</p>
+                  </div>
+                )}
+              </div>
 
-  const handleToggleChange = (option: string) => {
-    setChanges(prev =>
-      prev.includes(option) ? prev.filter(c => c !== option) : [...prev, option]
-    )
-  }
-
-  const handleAnalyze = () => {
-    if (!goal) {
-      alert('Please select your primary goal')
-      return
-    }
-
-    onAnalyze(goal, changes, additionalContext)
-  }
-
-  return (
-    <div className="bg-white rounded-lg shadow p-8 max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Almost there</h2>
-
-      <div className="mb-8">
-        <label className="block text-lg font-semibold text-gray-900 mb-4">
-          What was your primary goal?
-        </label>
-        <div className="space-y-2">
-          {['Get more views', 'Gain followers', 'Increase engagement', 'Drive sales or clicks', 'Educate my audience'].map(
-            opt => (
-              <label key={opt} className="flex items-center">
-                <input
-                  type="radio"
-                  name="goal"
-                  value={opt}
-                  checked={goal === opt}
-                  onChange={e => setGoal(e.target.value)}
-                  className="mr-3"
-                />
-                <span className="text-gray-900">{opt}</span>
-              </label>
-            )
+              <button
+                onClick={() => {
+                  setScreen('upload')
+                  setInsights([])
+                  setRecommendation(null)
+                }}
+                className="w-full bg-teal-600 text-white py-3 rounded-lg font-semibold hover:bg-teal-700 transition"
+              >
+                Analyze another dataset
+              </button>
+            </div>
           )}
         </div>
-      </div>
-
-      <div className="mb-8">
-        <label className="block text-lg font-semibold text-gray-900 mb-4">
-          What changed between these videos?
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          {changeOptions.map(option => (
-            <button
-              key={option}
-              onClick={() => handleToggleChange(option)}
-              className={`text-left px-4 py-2 rounded border-2 transition ${
-                changes.includes(option)
-                  ? 'border-teal-600 bg-teal-50'
-                  : 'border-gray-200 bg-white hover:border-teal-300'
-              }`}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-8">
-        <label className="block text-sm font-semibold text-gray-900 mb-2">
-          Anything else CreatorLens should know? (optional)
-        </label>
-        <textarea
-          value={additionalContext}
-          onChange={e => setAdditionalContext(e.target.value)}
-          placeholder="e.g., Both posted on Tuesday at 2pm"
-          className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-          rows={3}
-        />
-      </div>
-
-      <button
-        onClick={handleAnalyze}
-        className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded transition"
-      >
-        Get your coaching plan
-      </button>
-    </div>
-  )
-}
-
-function ReportScreen({
-  report,
-  strongVideo,
-  weakVideo,
-  onStartOver,
-}: {
-  report: any
-  strongVideo: VideoInput
-  weakVideo: VideoInput
-  onStartOver: () => void
-}) {
-  const handlePrint = () => {
-    window.print()
-  }
-
-  const handleCopy = () => {
-    const text = `Coaching Summary\n${report.coachingSummary}\n\n` +
-      `Biggest Difference\n${report.biggestDifference}\n\n` +
-      `What Worked\n${report.whatWorked.map((s: any) => `${s.title}: ${s.evidence}`).join('\n')}\n\n` +
-      `What Held You Back\n${report.likelyContributors.map((c: any) => `${c.title}: ${c.evidence}`).join('\n')}\n\n` +
-      `Experiments\n${report.experiments.map((e: any) => `${e.title}: ${e.change}`).join('\n')}\n\n` +
-      `Coaching Bullets\n${report.coachingBullets.join('\n')}`
-    
-    navigator.clipboard.writeText(text)
-    alert('Coaching plan copied!')
-  }
-
-  return (
-    <div className="space-y-8">
-      {/* Coaching Summary */}
-      <div className="bg-white rounded-lg shadow p-8 border-l-4 border-teal-600">
-        <h2 className="text-2xl font-bold text-gray-900 mb-3">Your Coaching Plan</h2>
-        <p className="text-lg text-gray-700">{report.coachingSummary}</p>
-      </div>
-
-      {/* Three Experiments */}
-      <div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-6">Three Experiments to Test</h3>
-        <div className="space-y-4">
-          {report.experiments.map((exp: any, i: number) => (
-            <div key={i} className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-start justify-between mb-4">
-                <h4 className="text-lg font-bold text-gray-900">{exp.title}</h4>
-                <span className="text-xs font-semibold text-teal-600 bg-teal-50 px-2 py-1 rounded">
-                  {exp.confidence}
-                </span>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4 text-sm mb-4">
-                <div>
-                  <p className="font-semibold text-gray-900 mb-1">Change</p>
-                  <p className="text-gray-700">{exp.change}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 mb-1">Keep constant</p>
-                  <p className="text-gray-700">{exp.keepConstant.join(', ')}</p>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4 text-sm mb-4">
-                <div>
-                  <p className="font-semibold text-gray-900 mb-1">Metric to watch</p>
-                  <p className="text-gray-700">{exp.metricToWatch}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 mb-1">Success signal</p>
-                  <p className="text-gray-700">{exp.successSignal}</p>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded p-3">
-                <p className="text-sm text-gray-700"><strong>Why:</strong> {exp.reason}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* What Worked */}
-      <div>
-        <h3 className="text-xl font-bold text-gray-900 mb-4">What Worked</h3>
-        <div className="space-y-3">
-          {report.whatWorked.map((strength: any, i: number) => (
-            <div key={i} className="bg-green-50 border border-green-200 rounded p-4">
-              <h4 className="font-semibold text-green-900 mb-2">{strength.title}</h4>
-              <p className="text-sm text-green-800 mb-2">{strength.evidence}</p>
-              <p className="text-sm text-green-700"><strong>Takeaway:</strong> {strength.takeaway}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* What Held It Back */}
-      <div>
-        <h3 className="text-xl font-bold text-gray-900 mb-4">What Likely Held It Back</h3>
-        <div className="space-y-3">
-          {report.likelyContributors.map((contributor: any, i: number) => (
-            <div key={i} className="bg-orange-50 border border-orange-200 rounded p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h4 className="font-semibold text-orange-900">{contributor.title}</h4>
-                <span className="text-xs text-orange-600">{contributor.confidence}</span>
-              </div>
-              <p className="text-sm text-orange-800 mb-2">{contributor.evidence}</p>
-              <p className="text-sm text-orange-700">{contributor.explanation}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Cannot Conclude */}
-      {report.cannotConclude.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded p-6">
-          <h3 className="font-semibold text-blue-900 mb-3">What We Cannot Conclude</h3>
-          <ul className="text-sm text-blue-800 space-y-2">
-            {report.cannotConclude.map((item: string, i: number) => (
-              <li key={i} className="flex gap-2">
-                <span>•</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
       )}
-
-      {/* Coaching Bullets */}
-      <div className="bg-teal-50 border border-teal-200 rounded p-6">
-        <p className="font-semibold text-teal-900 mb-3">If I were your content coach, I would tell you to:</p>
-        <ul className="text-sm text-teal-800 space-y-2">
-          {report.coachingBullets.map((bullet: string, i: number) => (
-            <li key={i} className="flex gap-2">
-              <span>✓</span>
-              <span>{bullet}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Actions */}
-      <div className="flex gap-4 flex-col sm:flex-row">
-        <button
-          onClick={handleCopy}
-          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 rounded transition"
-        >
-          Copy coaching plan
-        </button>
-        <button
-          onClick={handlePrint}
-          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold py-3 rounded transition"
-        >
-          Print
-        </button>
-        <button
-          onClick={onStartOver}
-          className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded transition"
-        >
-          Analyze another pair
-        </button>
-      </div>
-    </div>
+    </main>
   )
-}
-
-// ===== COACHING REPORT GENERATION =====
-
-function generateCoachingReport(context: CoachingContext): any {
-  const strong = context.strongVideo
-  const weak = context.underperformingVideo
-
-  const biggestDiff = findBiggestDifference(strong, weak)
-  const coachingSummary = generateCoachingSummary(strong, weak, biggestDiff)
-  const whatWorked = identifyStrengths(strong, weak, calculateDerivedMetrics(strong))
-  const likelyContributors = identifyContributors(strong, weak)
-  const cannotConclude = identifyConfounders(strong, weak)
-  const experiments = generateExperiments(strong, weak, context.primaryGoal, context.changesNoticed)
-
-  const coachingBullets = [
-    whatWorked.length > 0 ? whatWorked[0].takeaway : 'Focus on your strengths.',
-    experiments.length > 0 ? `Test ${experiments[0].change.toLowerCase()}.` : 'Run one controlled test.',
-    `Track ${experiments.length > 0 ? experiments[0].metricToWatch.toLowerCase() : 'your key metric'} for the next three uploads.`,
-  ]
-
-  return {
-    coachingSummary,
-    biggestDifference: biggestDiff
-      ? `${biggestDiff.metric}: The stronger video had a ${(biggestDiff.percentChange * 100).toFixed(0)}% advantage. This likely influenced the algorithm's decision to amplify it.`
-      : 'The videos have similar metrics.',
-    whatWorked,
-    likelyContributors,
-    cannotConclude,
-    experiments,
-    coachingBullets,
-  }
 }
