@@ -225,6 +225,63 @@ function VideoInputScreen({
 
   const [strongHook, setStrongHook] = useState('')
   const [weakHook, setWeakHook] = useState('')
+  
+  const [extractingStrong, setExtractingStrong] = useState(false)
+  const [extractingWeak, setExtractingWeak] = useState(false)
+  const [errorStrong, setErrorStrong] = useState<string | null>(null)
+  const [errorWeak, setErrorWeak] = useState<string | null>(null)
+
+  const handleScreenshotUpload = async (
+    file: File,
+    isStrong: boolean
+  ) => {
+    const setExtracting = isStrong ? setExtractingStrong : setExtractingWeak
+    const setError = isStrong ? setErrorStrong : setErrorWeak
+    const setMetrics = isStrong ? setStrongMetrics : setWeakMetrics
+
+    setExtracting(true)
+    setError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('screenshot', file)
+
+      const response = await fetch('/api/extract', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        setError(data.error || 'Extraction failed')
+        setExtracting(false)
+        return
+      }
+
+      // Map extracted metrics to state
+      setMetrics({
+        views: data.metrics.views.value,
+        likes: data.metrics.likes.value,
+        comments: data.metrics.comments.value,
+        shares: data.metrics.shares.value,
+        saves: data.metrics.saves.value,
+        videoLengthSeconds: data.metrics.videoLengthSeconds.value,
+        avgWatchTimeSeconds: data.metrics.averageWatchTimeSeconds.value,
+        completionRate: data.metrics.completionRate.value,
+        newFollowers: data.metrics.newFollowers.value,
+      })
+
+      // Show warnings if any
+      if (data.warnings && data.warnings.length > 0) {
+        setError(`Extracted successfully, but: ${data.warnings.join(', ')}. You can edit below.`)
+      }
+    } catch (err) {
+      setError('Upload failed. Try manual entry or try again.')
+    } finally {
+      setExtracting(false)
+    }
+  }
 
   const handleContinue = () => {
     // Validation
@@ -264,6 +321,14 @@ function VideoInputScreen({
           <h3 className="text-xl font-bold text-green-700 mb-4">✓ Strong Video</h3>
           <p className="text-sm text-gray-600 mb-6">One that performed better than usual</p>
 
+          {/* Screenshot Upload */}
+          <ScreenshotUpload
+            onUpload={file => handleScreenshotUpload(file, true)}
+            isExtracting={extractingStrong}
+            error={errorStrong}
+            onClearError={() => setErrorStrong(null)}
+          />
+
           <MetricsForm
             metrics={strongMetrics}
             onChange={setStrongMetrics}
@@ -292,6 +357,14 @@ function VideoInputScreen({
           <h3 className="text-xl font-bold text-orange-600 mb-4">✗ Underperforming Video</h3>
           <p className="text-sm text-gray-600 mb-6">One that performed worse than expected</p>
 
+          {/* Screenshot Upload */}
+          <ScreenshotUpload
+            onUpload={file => handleScreenshotUpload(file, false)}
+            isExtracting={extractingWeak}
+            error={errorWeak}
+            onClearError={() => setErrorWeak(null)}
+          />
+
           <MetricsForm
             metrics={weakMetrics}
             onChange={setWeakMetrics}
@@ -317,7 +390,7 @@ function VideoInputScreen({
       </div>
 
       <div className="bg-teal-50 border border-teal-200 rounded p-4 text-sm text-teal-900">
-        <strong>Tip:</strong> Get these numbers from your TikTok Analytics. If you're missing any metrics, leave them blank and you can fill them in on the next screen.
+        <strong>Tip:</strong> Upload a screenshot of your TikTok Analytics for quick extraction. All fields are editable.
       </div>
 
       <div className="flex gap-4">
@@ -328,6 +401,50 @@ function VideoInputScreen({
           Continue
         </button>
       </div>
+    </div>
+  )
+}
+
+function ScreenshotUpload({
+  onUpload,
+  isExtracting,
+  error,
+  onClearError,
+}: {
+  onUpload: (file: File) => void
+  isExtracting: boolean
+  error: string | null
+  onClearError: () => void
+}) {
+  return (
+    <div className="mb-6">
+      <label className="block text-sm font-semibold text-gray-900 mb-3">
+        Upload TikTok Analytics Screenshot (optional)
+      </label>
+      <input
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        onChange={e => {
+          const file = e.currentTarget.files?.[0]
+          if (file) {
+            onUpload(file)
+          }
+        }}
+        disabled={isExtracting}
+        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 disabled:opacity-50"
+      />
+      {isExtracting && <p className="text-xs text-teal-600 mt-2">Extracting metrics...</p>}
+      {error && (
+        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+          {error}
+          <button
+            onClick={onClearError}
+            className="ml-2 underline font-semibold"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
     </div>
   )
 }
