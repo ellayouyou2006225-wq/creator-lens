@@ -225,7 +225,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Extractio
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-1',
+        model: 'claude-opus-4-8',
         max_tokens: 1024,
         messages: [
           {
