@@ -345,7 +345,7 @@ function VideoInputScreen({ onComplete }: any) {
 
             <div className="space-y-4">
               <ScreenshotUpload
-                onUpload={file => handleScreenshotUpload(file, true)}
+                onUpload={(file: File) => handleScreenshotUpload(file, true)}
                 isExtracting={extractingStrong}
                 error={errorStrong}
                 onClearError={() => setErrorStrong(null)}
@@ -382,7 +382,7 @@ function VideoInputScreen({ onComplete }: any) {
 
             <div className="space-y-4">
               <ScreenshotUpload
-                onUpload={file => handleScreenshotUpload(file, false)}
+                onUpload={(file: File) => handleScreenshotUpload(file, false)}
                 isExtracting={extractingWeak}
                 error={errorWeak}
                 onClearError={() => setErrorWeak(null)}
