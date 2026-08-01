@@ -62,6 +62,8 @@ export default function Home() {
     setAppState(prev => ({
       ...prev,
       screen: 'questions',
+      strongVideo: context.strongVideo || prev.strongVideo,
+      underperformingVideo: context.underperformingVideo || prev.underperformingVideo,
       context: { ...prev.context, ...context },
     }))
   }
@@ -786,34 +788,42 @@ function HookGenerator({ weakVideo, strongVideo, report }: { weakVideo: VideoInp
     setIsGenerating(true)
     setError(null)
 
+    const payload = {
+      currentHook: weakVideo.hook,
+      topic: weakVideo.topic,
+      strongHook: strongVideo.hook,
+      strongTopic: strongVideo.topic,
+      primaryGoal: 'follower growth',
+      biggestInsight: report.biggestDifference,
+      watchPercentageDifference: '45% vs 60%',
+      engagementDifference: '3.2% vs 5.1%',
+    }
+
+    console.log('Sending hook request:', payload)
+
     try {
       const response = await fetch('/api/generate-hooks', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          currentHook: weakVideo.hook,
-          strongHook: strongVideo.hook,
-          weakTopic: weakVideo.topic,
-          strongTopic: strongVideo.topic,
-          weakFormat: weakVideo.format,
-          strongFormat: strongVideo.format,
-          primaryGoal: 'follower growth',
-          biggestInsight: report.biggestDifference,
-          watchPercentageDifference: '45% vs 60%',
-          engagementDifference: '3.2% vs 5.1%',
-        }),
+        body: JSON.stringify(payload),
       })
 
       const data = await response.json()
+      console.log('Hook response:', { status: response.status, data })
 
       if (!data.success) {
-        setError(data.error || 'Failed to generate hooks')
+        const errorMsg = data.missingFields 
+          ? `Missing required fields: ${data.missingFields.join(', ')}`
+          : data.error || 'Failed to generate hooks'
+        console.error('Hook generation error:', errorMsg)
+        setError(errorMsg)
         setIsGenerating(false)
         return
       }
 
       setHooks(data.hooks)
     } catch (err) {
+      console.error('Hook fetch error:', err)
       setError('Error generating hooks. Please try again.')
     } finally {
       setIsGenerating(false)
