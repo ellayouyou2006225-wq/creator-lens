@@ -21,6 +21,19 @@ import {
 } from './lib/coaching'
 import { sampleContext } from './lib/demo'
 
+const colors = {
+  bg: '#0f0f0f',
+  surface: '#1a1a1a',
+  border: '#2a2a2a',
+  textPrimary: '#f5f1e8',
+  textSecondary: '#a89f94',
+  textTertiary: '#6b6359',
+  lime: '#7ee22c',
+  limeDark: '#5fa61f',
+  orange: '#b8855c',
+  violet: '#8b7fb8',
+}
+
 export default function Home() {
   const [appState, setAppState] = useState<AppState>({
     screen: 'landing',
@@ -97,7 +110,7 @@ export default function Home() {
   }
 
   return (
-    <div className="page-container">
+    <div style={{ backgroundColor: colors.bg, color: colors.textPrimary, minHeight: '100vh' }}>
       {appState.screen === 'landing' && (
         <LandingScreen onStartAnalysis={handleStartAnalysis} onTryDemo={handleTryDemo} />
       )}
@@ -134,54 +147,62 @@ export default function Home() {
 
 function LandingScreen({ onStartAnalysis, onTryDemo }: any) {
   return (
-    <div className="page-container min-h-screen flex flex-col">
+    <div style={{ backgroundColor: colors.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <header className="border-b border-dark-border">
-        <div className="content-max-width py-lg flex items-center justify-between">
+      <header style={{ borderBottom: `1px solid ${colors.border}` }}>
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-light tracking-tight">CreatorLens</h1>
-          <div className="text-xs text-text-tertiary">v1</div>
+          <div className="text-xs" style={{ color: colors.textTertiary }}>v1</div>
         </div>
       </header>
 
       {/* Hero */}
       <div className="flex-1 flex flex-col justify-center">
-        <div className="content-max-width">
-          <div className="mb-3xl">
-            <p className="text-accent-lime text-sm font-medium mb-xl">Your post-performance content coach</p>
-            <h2 className="text-5xl md:text-6xl font-light leading-tight mb-2xl max-w-3xl">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="mb-12">
+            <p className="text-sm font-medium mb-4" style={{ color: colors.lime }}>Your post-performance content coach</p>
+            <h2 className="text-5xl md:text-6xl font-light leading-tight mb-8 max-w-3xl" style={{ color: colors.textPrimary }}>
               Turn your analytics into your next creative decision.
             </h2>
-            <p className="text-lg text-text-secondary max-w-2xl mb-4xl leading-relaxed">
+            <p className="text-lg max-w-2xl mb-16 leading-relaxed" style={{ color: colors.textSecondary }}>
               Compare one strong video with one that underperformed. See what likely made the difference and what to test next.
             </p>
           </div>
 
           {/* Process */}
-          <div className="grid md:grid-cols-3 gap-2xl mb-4xl">
+          <div className="grid md:grid-cols-3 gap-8 mb-16">
             {[
               { num: '1', label: 'Upload analytics', desc: 'Screenshot or manual entry' },
               { num: '2', label: 'Compare what changed', desc: 'See the metrics that matter' },
               { num: '3', label: 'Know what to post', desc: 'Get exact next steps' },
             ].map(step => (
               <div key={step.num} className="group">
-                <div className="text-4xl font-light text-accent-lime mb-md opacity-60 group-hover:opacity-100 transition-opacity">{step.num}</div>
-                <h4 className="font-medium text-text-primary mb-sm">{step.label}</h4>
-                <p className="text-sm text-text-tertiary">{step.desc}</p>
+                <div className="text-4xl font-light mb-3 opacity-60 group-hover:opacity-100 transition-opacity" style={{ color: colors.lime }}>{step.num}</div>
+                <h4 className="font-medium mb-2" style={{ color: colors.textPrimary }}>{step.label}</h4>
+                <p className="text-sm" style={{ color: colors.textTertiary }}>{step.desc}</p>
               </div>
             ))}
           </div>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-lg">
-            <button onClick={onStartAnalysis} className="btn-primary">
+          <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            <button
+              onClick={onStartAnalysis}
+              className="px-8 py-3 rounded-full font-semibold transition-all hover:opacity-90"
+              style={{ backgroundColor: colors.lime, color: colors.bg }}
+            >
               Analyze my videos
             </button>
-            <button onClick={onTryDemo} className="btn-secondary">
+            <button
+              onClick={onTryDemo}
+              className="px-8 py-3 rounded-full font-semibold transition-all hover:opacity-90"
+              style={{ border: `1px solid ${colors.textSecondary}`, color: colors.textPrimary }}
+            >
               Try a sample analysis
             </button>
           </div>
 
-          <p className="text-xs text-text-tertiary mt-2xl">
+          <p className="text-xs" style={{ color: colors.textTertiary }}>
             No account required. Your data is processed only for this analysis.
           </p>
         </div>
@@ -300,29 +321,29 @@ function VideoInputScreen({ onComplete }: any) {
   }
 
   return (
-    <div className="page-container">
-      <header className="border-b border-dark-border sticky top-0 bg-dark-bg">
-        <div className="content-max-width flex items-center justify-between py-lg">
+    <div style={{ backgroundColor: colors.bg, minHeight: '100vh' }}>
+      <header style={{ borderBottom: `1px solid ${colors.border}`, position: 'sticky', top: 0 }}>
+        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between py-4">
           <h1 className="text-xl font-light">Enter your videos</h1>
-          <button onClick={handleContinue} className="btn-primary text-sm py-md px-xl">
+          <button onClick={handleContinue} className="text-sm py-2 px-6 rounded-full font-semibold transition-all hover:opacity-90" style={{ backgroundColor: colors.lime, color: colors.bg }}>
             Continue
           </button>
         </div>
       </header>
 
-      <div className="content-max-width">
-        <div className="grid md:grid-cols-2 gap-4xl py-4xl">
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="grid md:grid-cols-2 gap-16">
           {/* Strong Video */}
           <div className="animate-slide-up">
-            <div className="mb-2xl">
-              <div className="flex items-baseline gap-md mb-lg">
-                <span className="text-accent-lime text-xl">✓</span>
+            <div className="mb-8">
+              <div className="flex items-baseline gap-3 mb-4">
+                <span className="text-xl" style={{ color: colors.lime }}>✓</span>
                 <h2 className="text-2xl font-light">Strong video</h2>
               </div>
-              <p className="text-text-secondary text-sm">One that performed better than expected</p>
+              <p className="text-sm" style={{ color: colors.textSecondary }}>One that performed better than expected</p>
             </div>
 
-            <div className="space-y-lg">
+            <div className="space-y-4">
               <ScreenshotUpload
                 onUpload={file => handleScreenshotUpload(file, true)}
                 isExtracting={extractingStrong}
@@ -336,12 +357,13 @@ function VideoInputScreen({ onComplete }: any) {
               />
 
               <div>
-                <label className="input-label">Opening hook (first 3 seconds)</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>Opening hook (first 3 seconds)</label>
                 <textarea
                   value={strongHook}
                   onChange={e => setStrongHook(e.target.value)}
                   placeholder="e.g., I quit my tech job after 5 years"
-                  className="w-full bg-dark-surface border border-dark-border rounded-base px-lg py-md text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-lime text-sm"
+                  className="w-full px-4 py-3 rounded text-sm border"
+                  style={{ backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }}
                   rows={2}
                 />
               </div>
@@ -350,15 +372,15 @@ function VideoInputScreen({ onComplete }: any) {
 
           {/* Weak Video */}
           <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            <div className="mb-2xl">
-              <div className="flex items-baseline gap-md mb-lg">
-                <span className="text-accent-orange text-xl">—</span>
+            <div className="mb-8">
+              <div className="flex items-baseline gap-3 mb-4">
+                <span className="text-xl" style={{ color: colors.orange }}>—</span>
                 <h2 className="text-2xl font-light">Underperforming video</h2>
               </div>
-              <p className="text-text-secondary text-sm">One that performed worse than expected</p>
+              <p className="text-sm" style={{ color: colors.textSecondary }}>One that performed worse than expected</p>
             </div>
 
-            <div className="space-y-lg">
+            <div className="space-y-4">
               <ScreenshotUpload
                 onUpload={file => handleScreenshotUpload(file, false)}
                 isExtracting={extractingWeak}
@@ -372,12 +394,13 @@ function VideoInputScreen({ onComplete }: any) {
               />
 
               <div>
-                <label className="input-label">Opening hook (first 3 seconds)</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>Opening hook (first 3 seconds)</label>
                 <textarea
                   value={weakHook}
                   onChange={e => setWeakHook(e.target.value)}
                   placeholder="e.g., Today I want to share some helpful tips"
-                  className="w-full bg-dark-surface border border-dark-border rounded-base px-lg py-md text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-lime text-sm"
+                  className="w-full px-4 py-3 rounded text-sm border"
+                  style={{ backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }}
                   rows={2}
                 />
               </div>
@@ -385,8 +408,8 @@ function VideoInputScreen({ onComplete }: any) {
           </div>
         </div>
 
-        <div className="border-t border-dark-border py-4xl flex gap-lg justify-end">
-          <button onClick={handleContinue} className="btn-primary">
+        <div className="border-t mt-16 pt-8 flex gap-4 justify-end" style={{ borderColor: colors.border }}>
+          <button onClick={handleContinue} className="px-8 py-3 rounded-full font-semibold transition-all hover:opacity-90" style={{ backgroundColor: colors.lime, color: colors.bg }}>
             Review metrics
           </button>
         </div>
@@ -398,7 +421,7 @@ function VideoInputScreen({ onComplete }: any) {
 function ScreenshotUpload({ onUpload, isExtracting, error, onClearError }: any) {
   return (
     <div>
-      <label className="input-label">Analytics screenshot (optional)</label>
+      <label className="block text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>Analytics screenshot (optional)</label>
       <input
         type="file"
         accept="image/png,image/jpeg,image/webp"
@@ -407,13 +430,14 @@ function ScreenshotUpload({ onUpload, isExtracting, error, onClearError }: any) 
           if (file) onUpload(file)
         }}
         disabled={isExtracting}
-        className="block w-full text-sm text-text-secondary file:mr-lg file:py-md file:px-lg file:rounded-base file:border file:border-dark-border file:bg-dark-surface file:text-text-secondary hover:file:border-accent-lime file:transition-colors disabled:opacity-50"
+        className="block w-full text-sm"
+        style={{ color: colors.textSecondary }}
       />
-      {isExtracting && <p className="text-xs text-accent-lime mt-md">Extracting metrics...</p>}
+      {isExtracting && <p className="text-xs mt-2" style={{ color: colors.lime }}>Extracting metrics...</p>}
       {error && (
-        <div className="mt-md p-md bg-dark-surface border border-dark-border rounded-base text-xs text-accent-orange">
+        <div className="mt-2 p-3 rounded text-xs border" style={{ backgroundColor: colors.surface, borderColor: colors.border, color: colors.orange }}>
           {error}
-          <button onClick={onClearError} className="ml-md underline">Dismiss</button>
+          <button onClick={onClearError} className="ml-2 underline">Dismiss</button>
         </div>
       )}
     </div>
@@ -439,15 +463,16 @@ function MetricsForm({ metrics, onChange }: any) {
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-md">
+    <div className="grid grid-cols-2 gap-2">
       {fields.map(field => (
         <div key={field.key}>
-          <label className="text-xs text-text-tertiary block mb-sm">{field.label}</label>
+          <label className="text-xs block mb-1" style={{ color: colors.textTertiary }}>{field.label}</label>
           <input
             type="number"
             value={metrics[field.key] ?? ''}
             onChange={e => handleChange(field.key, e.target.value)}
-            className="w-full bg-dark-surface border border-dark-border rounded-base px-md py-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-lime text-sm"
+            className="w-full px-3 py-2 rounded text-sm border"
+            style={{ backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }}
           />
         </div>
       ))}
@@ -460,10 +485,6 @@ function MetricsForm({ metrics, onChange }: any) {
 function ContextScreen({ strongVideo, weakVideo, onComplete }: any) {
   const [strongTopic, setStrongTopic] = useState('')
   const [weakTopic, setWeakTopic] = useState('')
-  const [strongFormat, setStrongFormat] = useState('talking-head')
-  const [weakFormat, setWeakFormat] = useState('talking-head')
-
-  const formats = ['talking-head', 'voiceover', 'slideshow', 'vlog', 'screen-recording', 'interview', 'other']
 
   const handleContinue = () => {
     if (!strongTopic || !weakTopic) {
@@ -472,67 +493,51 @@ function ContextScreen({ strongVideo, weakVideo, onComplete }: any) {
     }
 
     onComplete({
-      strongVideo: { ...strongVideo, topic: strongTopic, format: strongFormat },
-      underperformingVideo: { ...weakVideo, topic: weakTopic, format: weakFormat },
+      strongVideo: { ...strongVideo, topic: strongTopic },
+      underperformingVideo: { ...weakVideo, topic: weakTopic },
     })
   }
 
   return (
-    <div className="page-container">
-      <header className="border-b border-dark-border sticky top-0 bg-dark-bg">
-        <div className="content-max-width flex items-center justify-between py-lg">
+    <div style={{ backgroundColor: colors.bg, minHeight: '100vh' }}>
+      <header style={{ borderBottom: `1px solid ${colors.border}`, position: 'sticky', top: 0 }}>
+        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between py-4">
           <h1 className="text-xl font-light">Creative details</h1>
-          <button onClick={handleContinue} className="btn-primary text-sm py-md px-xl">
+          <button onClick={handleContinue} className="text-sm py-2 px-6 rounded-full font-semibold transition-all hover:opacity-90" style={{ backgroundColor: colors.lime, color: colors.bg }}>
             Continue
           </button>
         </div>
       </header>
 
-      <div className="content-max-width">
-        <div className="grid md:grid-cols-2 gap-4xl py-4xl">
-          <div className="animate-slide-up space-y-lg">
-            <div>
-              <label className="input-label">Topic</label>
-              <input
-                type="text"
-                value={strongTopic}
-                onChange={e => setStrongTopic(e.target.value)}
-                placeholder="e.g., Career transition"
-              />
-            </div>
-            <div>
-              <label className="input-label">Format</label>
-              <select value={strongFormat} onChange={e => setStrongFormat(e.target.value)}>
-                {formats.map(f => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
-            </div>
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="grid md:grid-cols-2 gap-16">
+          <div className="animate-slide-up">
+            <label className="block text-sm font-medium mb-3" style={{ color: colors.textSecondary }}>Topic</label>
+            <input
+              type="text"
+              value={strongTopic}
+              onChange={e => setStrongTopic(e.target.value)}
+              placeholder="e.g., Career transition"
+              className="w-full px-4 py-3 rounded text-sm border"
+              style={{ backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }}
+            />
           </div>
 
-          <div className="animate-slide-up space-y-lg" style={{ animationDelay: '0.1s' }}>
-            <div>
-              <label className="input-label">Topic</label>
-              <input
-                type="text"
-                value={weakTopic}
-                onChange={e => setWeakTopic(e.target.value)}
-                placeholder="e.g., Job search tips"
-              />
-            </div>
-            <div>
-              <label className="input-label">Format</label>
-              <select value={weakFormat} onChange={e => setWeakFormat(e.target.value)}>
-                {formats.map(f => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
-            </div>
+          <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <label className="block text-sm font-medium mb-3" style={{ color: colors.textSecondary }}>Topic</label>
+            <input
+              type="text"
+              value={weakTopic}
+              onChange={e => setWeakTopic(e.target.value)}
+              placeholder="e.g., Job search tips"
+              className="w-full px-4 py-3 rounded text-sm border"
+              style={{ backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }}
+            />
           </div>
         </div>
 
-        <div className="border-t border-dark-border py-4xl flex gap-lg justify-end">
-          <button onClick={handleContinue} className="btn-primary">
+        <div className="border-t mt-16 pt-8 flex gap-4 justify-end" style={{ borderColor: colors.border }}>
+          <button onClick={handleContinue} className="px-8 py-3 rounded-full font-semibold transition-all hover:opacity-90" style={{ backgroundColor: colors.lime, color: colors.bg }}>
             Next
           </button>
         </div>
@@ -548,7 +553,6 @@ function QuestionsScreen({ onAnalyze }: any) {
   const [changes, setChanges] = useState<string[]>([])
 
   const goals = ['Get more views', 'Gain followers', 'Increase engagement', 'Drive sales or clicks', 'Educate my audience']
-  const changeOptions = ['Opening hook', 'Topic', 'Video length', 'Editing pace', 'Format', 'Call to action', 'Posting time', 'Caption', 'Sound', 'Visual style', 'Not sure']
 
   const handleAnalyze = () => {
     if (!goal) {
@@ -559,21 +563,21 @@ function QuestionsScreen({ onAnalyze }: any) {
   }
 
   return (
-    <div className="page-container">
-      <header className="border-b border-dark-border sticky top-0 bg-dark-bg">
-        <div className="content-max-width flex items-center justify-between py-lg">
+    <div style={{ backgroundColor: colors.bg, minHeight: '100vh' }}>
+      <header style={{ borderBottom: `1px solid ${colors.border}`, position: 'sticky', top: 0 }}>
+        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between py-4">
           <h1 className="text-xl font-light">What's your goal?</h1>
-          <button onClick={handleAnalyze} className="btn-primary text-sm py-md px-xl">
+          <button onClick={handleAnalyze} className="text-sm py-2 px-6 rounded-full font-semibold transition-all hover:opacity-90" style={{ backgroundColor: colors.lime, color: colors.bg }}>
             Analyze
           </button>
         </div>
       </header>
 
-      <div className="content-max-width">
-        <div className="py-4xl space-y-4xl max-w-2xl">
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="max-w-2xl space-y-16">
           <div className="animate-slide-up">
-            <h3 className="section-heading">Primary goal</h3>
-            <div className="space-y-md">
+            <h3 className="text-2xl font-normal mb-8">Primary goal</h3>
+            <div className="space-y-3">
               {goals.map(g => (
                 <label key={g} className="flex items-center cursor-pointer group">
                   <input
@@ -582,40 +586,19 @@ function QuestionsScreen({ onAnalyze }: any) {
                     value={g}
                     checked={goal === g}
                     onChange={e => setGoal(e.target.value)}
-                    className="w-4 h-4 mr-lg accent-accent-lime"
+                    className="w-4 h-4 mr-4 accent-lime-500"
                   />
-                  <span className="text-base group-hover:text-accent-lime transition-colors">{g}</span>
+                  <span className="text-base transition-colors" style={{ color: goal === g ? colors.lime : colors.textPrimary }}>
+                    {g}
+                  </span>
                 </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            <h3 className="section-heading">What changed between videos?</h3>
-            <div className="grid grid-cols-2 gap-md">
-              {changeOptions.map(option => (
-                <button
-                  key={option}
-                  onClick={() =>
-                    setChanges(prev =>
-                      prev.includes(option) ? prev.filter(c => c !== option) : [...prev, option]
-                    )
-                  }
-                  className={`text-left px-lg py-md rounded-base border transition-all ${
-                    changes.includes(option)
-                      ? 'border-accent-lime bg-dark-surface text-accent-lime'
-                      : 'border-dark-border hover:border-text-secondary'
-                  }`}
-                >
-                  {option}
-                </button>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="border-t border-dark-border py-4xl flex gap-lg justify-end">
-          <button onClick={handleAnalyze} className="btn-primary">
+        <div className="border-t mt-16 pt-8 flex gap-4 justify-end" style={{ borderColor: colors.border }}>
+          <button onClick={handleAnalyze} className="px-8 py-3 rounded-full font-semibold transition-all hover:opacity-90" style={{ backgroundColor: colors.lime, color: colors.bg }}>
             Generate coaching
           </button>
         </div>
@@ -628,23 +611,23 @@ function QuestionsScreen({ onAnalyze }: any) {
 
 function ReportScreen({ report, strongVideo, weakVideo, onStartOver }: any) {
   return (
-    <div className="page-container">
-      <header className="border-b border-dark-border sticky top-0 bg-dark-bg">
-        <div className="content-max-width flex items-center justify-between py-lg">
+    <div style={{ backgroundColor: colors.bg, minHeight: '100vh' }}>
+      <header style={{ borderBottom: `1px solid ${colors.border}`, position: 'sticky', top: 0 }}>
+        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between py-4">
           <h1 className="text-xl font-light">Your coaching plan</h1>
-          <button onClick={onStartOver} className="btn-tertiary text-sm">
+          <button onClick={onStartOver} className="text-xs" style={{ color: colors.textSecondary }}>
             Analyze another pair
           </button>
         </div>
       </header>
 
-      <div className="content-max-width py-6xl space-y-6xl">
+      <div className="max-w-4xl mx-auto px-4 py-24 space-y-24">
         {/* Main Insight */}
         <div className="animate-slide-up">
-          <h2 className="text-4xl font-light mb-2xl leading-tight max-w-3xl">
+          <h2 className="text-4xl font-light mb-8 leading-tight max-w-3xl" style={{ color: colors.textPrimary }}>
             The biggest thing I'd tell you
           </h2>
-          <p className="text-lg text-text-secondary mb-2xl leading-relaxed max-w-2xl">
+          <p className="text-lg max-w-2xl leading-relaxed" style={{ color: colors.textSecondary }}>
             {report.coachingSummary}
           </p>
         </div>
@@ -654,98 +637,46 @@ function ReportScreen({ report, strongVideo, weakVideo, onStartOver }: any) {
 
         {/* Biggest Difference */}
         <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-          <h3 className="section-heading">What the numbers are really saying</h3>
-          <p className="text-base text-text-secondary leading-relaxed">
+          <h3 className="text-2xl font-normal mb-8" style={{ color: colors.textPrimary }}>What the numbers are really saying</h3>
+          <p className="text-base leading-relaxed" style={{ color: colors.textSecondary }}>
             {report.biggestDifference}
           </p>
         </div>
 
         {/* Experiments */}
         <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
-          <h3 className="section-heading">What I'd test next</h3>
-          <div className="space-y-lg">
+          <h3 className="text-2xl font-normal mb-8" style={{ color: colors.textPrimary }}>What I'd test next</h3>
+          <div className="space-y-4">
             {report.experiments.map((exp: any, i: number) => (
-              <div key={i} className="bg-dark-surface border border-dark-border rounded-lg p-2xl animate-fade-in" style={{ animationDelay: `${0.4 + i * 0.1}s` }}>
-                <div className="flex items-baseline justify-between mb-xl">
+              <div key={i} className="border rounded p-6 animate-fade-in" style={{ backgroundColor: colors.surface, borderColor: colors.border, animationDelay: `${0.4 + i * 0.1}s` }}>
+                <div className="flex items-baseline justify-between mb-4">
                   <h4 className="text-lg font-medium">{exp.title}</h4>
-                  <span className="text-xs text-accent-lime bg-dark-bg px-md py-sm rounded-full">{exp.confidence}</span>
+                  <span className="text-xs px-3 py-1 rounded-full" style={{ backgroundColor: colors.bg, color: colors.lime }}>{exp.confidence}</span>
                 </div>
-                <div className="grid md:grid-cols-2 gap-2xl mb-lg text-sm">
+                <div className="grid md:grid-cols-2 gap-8 mb-4 text-sm">
                   <div>
-                    <p className="text-text-tertiary mb-md">Change</p>
-                    <p className="text-text-primary">{exp.change}</p>
+                    <p className="mb-2" style={{ color: colors.textTertiary }}>Change</p>
+                    <p style={{ color: colors.textPrimary }}>{exp.change}</p>
                   </div>
                   <div>
-                    <p className="text-text-tertiary mb-md">Keep constant</p>
-                    <p className="text-text-primary">{exp.keepConstant.join(', ')}</p>
+                    <p className="mb-2" style={{ color: colors.textTertiary }}>Keep constant</p>
+                    <p style={{ color: colors.textPrimary }}>{exp.keepConstant.join(', ')}</p>
                   </div>
                 </div>
-                <div className="bg-dark-bg rounded p-md border border-dark-border">
-                  <p className="text-sm"><strong className="text-accent-lime">Watch:</strong> {exp.metricToWatch}</p>
+                <div className="p-3 rounded border" style={{ backgroundColor: colors.bg, borderColor: colors.border }}>
+                  <p className="text-sm" style={{ color: colors.textPrimary }}><strong style={{ color: colors.lime }}>Watch:</strong> {exp.metricToWatch}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
-
-        {/* What Worked */}
-        <div className="animate-slide-up" style={{ animationDelay: '0.4s' }}>
-          <h3 className="section-heading">Keep doing this</h3>
-          <div className="space-y-lg">
-            {report.whatWorked.map((s: any, i: number) => (
-              <div key={i} className="border-l-2 border-accent-lime pl-xl">
-                <h4 className="font-medium mb-md">{s.title}</h4>
-                <p className="text-text-secondary text-sm mb-md">{s.evidence}</p>
-                <p className="text-text-tertiary text-sm"><strong className="text-accent-lime">Next time:</strong> {s.takeaway}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Likely Contributors */}
-        <div className="animate-slide-up" style={{ animationDelay: '0.5s' }}>
-          <h3 className="section-heading">I'd experiment here</h3>
-          <div className="space-y-lg">
-            {report.likelyContributors.map((c: any, i: number) => (
-              <div key={i} className="border-l-2 border-accent-orange pl-xl">
-                <div className="flex items-baseline gap-md mb-md">
-                  <h4 className="font-medium">{c.title}</h4>
-                  <span className="text-xs text-accent-orange">{c.confidence}</span>
-                </div>
-                <p className="text-text-secondary text-sm mb-md">{c.evidence}</p>
-                <p className="text-text-tertiary text-sm">{c.explanation}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Confounders */}
-        {report.cannotConclude.length > 0 && (
-          <div className="animate-slide-up" style={{ animationDelay: '0.6s' }}>
-            <h3 className="section-heading">Don't assume this yet</h3>
-            <ul className="space-y-md">
-              {report.cannotConclude.map((item: string, i: number) => (
-                <li key={i} className="text-text-secondary text-sm flex gap-md">
-                  <span className="text-accent-violet">•</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Hook Generator */}
-        <HookGeneratorSection weakVideo={weakVideo} strongVideo={strongVideo} report={report} />
 
         {/* Next Week Plan */}
         <NextWeekPlanSection plan={report.nextWeekPlan} />
 
         {/* Actions */}
-        <div className="border-t border-dark-border pt-4xl flex gap-lg flex-wrap">
-          <button onClick={() => window.print()} className="btn-secondary">
-            Print coaching
-          </button>
-          <button onClick={onStartOver} className="btn-primary">
+        <div className="border-t pt-8 flex gap-4" style={{ borderColor: colors.border }}>
+          <button onClick={onStartOver} className="px-8 py-3 rounded-full font-semibold transition-all hover:opacity-90" style={{ backgroundColor: colors.lime, color: colors.bg }}>
             Analyze another pair
           </button>
         </div>
@@ -759,42 +690,42 @@ function MetricComparisonDisplay({ metrics }: any) {
 
   return (
     <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-      <h3 className="section-heading">What the numbers are really saying</h3>
-      <div className="space-y-xl">
+      <h3 className="text-2xl font-normal mb-8" style={{ color: colors.textPrimary }}>What the numbers are really saying</h3>
+      <div className="space-y-4">
         {metrics.map((metric: any, i: number) => {
           const maxValue = Math.max(metric.strongValue, metric.weakValue)
           const strongWidth = (metric.strongValue / maxValue) * 100
           const weakWidth = (metric.weakValue / maxValue) * 100
 
           return (
-            <div key={i} className="space-y-md">
-              <div className="flex justify-between items-baseline">
-                <span className="text-sm font-medium text-text-secondary">{metric.name}</span>
+            <div key={i} className="space-y-2">
+              <div className="flex justify-between items-baseline text-sm" style={{ color: colors.textSecondary }}>
+                <span>{metric.name}</span>
               </div>
 
-              <div className="space-y-sm">
-                <div className="flex items-center gap-lg">
-                  <span className="text-xs text-text-tertiary w-20">Strong</span>
-                  <div className="flex-1 bg-dark-surface h-2 rounded-full overflow-hidden">
+              <div className="space-y-2">
+                <div className="flex items-center gap-4">
+                  <span className="text-xs w-20" style={{ color: colors.textTertiary }}>Strong</span>
+                  <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: colors.surface }}>
                     <div
-                      className="bg-accent-lime h-full rounded-full"
-                      style={{ width: `${Math.min(strongWidth, 100)}%` }}
+                      className="h-full rounded-full"
+                      style={{ width: `${Math.min(strongWidth, 100)}%`, backgroundColor: colors.lime, transition: 'width 0.8s ease-out' }}
                     />
                   </div>
-                  <span className="text-sm font-medium text-text-primary w-16 text-right">
+                  <span className="text-sm font-medium w-16 text-right" style={{ color: colors.textPrimary }}>
                     {metric.strongValue.toFixed(metric.isPercentage ? 1 : 0)}{metric.isPercentage ? '%' : metric.unit}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-lg">
-                  <span className="text-xs text-text-tertiary w-20">Underperforming</span>
-                  <div className="flex-1 bg-dark-surface h-2 rounded-full overflow-hidden">
+                <div className="flex items-center gap-4">
+                  <span className="text-xs w-20" style={{ color: colors.textTertiary }}>Underperforming</span>
+                  <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: colors.surface }}>
                     <div
-                      className="bg-accent-orange h-full rounded-full opacity-60"
-                      style={{ width: `${Math.min(weakWidth, 100)}%` }}
+                      className="h-full rounded-full opacity-60"
+                      style={{ width: `${Math.min(weakWidth, 100)}%`, backgroundColor: colors.orange, transition: 'width 0.8s ease-out' }}
                     />
                   </div>
-                  <span className="text-sm font-medium text-text-primary w-16 text-right">
+                  <span className="text-sm font-medium w-16 text-right" style={{ color: colors.textPrimary }}>
                     {metric.weakValue.toFixed(metric.isPercentage ? 1 : 0)}{metric.isPercentage ? '%' : metric.unit}
                   </span>
                 </div>
@@ -807,153 +738,48 @@ function MetricComparisonDisplay({ metrics }: any) {
   )
 }
 
-function HookGeneratorSection({ weakVideo, strongVideo, report }: any) {
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [hooks, setHooks] = useState<any[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleGenerateHooks = async () => {
-    setIsGenerating(true)
-    setError(null)
-
-    const payload = {
-      currentHook: weakVideo.hook,
-      topic: weakVideo.topic,
-      strongHook: strongVideo.hook,
-      strongTopic: strongVideo.topic,
-      primaryGoal: 'follower growth',
-      biggestInsight: report.biggestDifference,
-      watchPercentageDifference: '45% vs 60%',
-      engagementDifference: '3.2% vs 5.1%',
-    }
-
-    try {
-      const response = await fetch('/api/generate-hooks', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      const data = await response.json()
-
-      if (!data.success) {
-        const errorMsg = data.missingFields
-          ? `Missing: ${data.missingFields.join(', ')}`
-          : data.error || 'Failed to generate'
-        setError(errorMsg)
-        setIsGenerating(false)
-        return
-      }
-
-      setHooks(data.hooks)
-    } catch (err) {
-      setError('Error generating hooks')
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
-  const handleCopyHook = (hook: string) => {
-    navigator.clipboard.writeText(hook)
-    alert('Hook copied!')
-  }
-
-  return (
-    <div className="animate-slide-up" style={{ animationDelay: '0.7s' }}>
-      <h3 className="section-heading">Let's improve your opening</h3>
-
-      <div className="mb-2xl p-2xl bg-dark-surface border border-dark-border rounded-lg">
-        <p className="text-xs text-text-tertiary mb-md">Current hook</p>
-        <p className="text-base italic text-text-primary">"{weakVideo.hook}"</p>
-      </div>
-
-      {!hooks && (
-        <button
-          onClick={handleGenerateHooks}
-          disabled={isGenerating}
-          className="btn-primary w-full disabled:opacity-50"
-        >
-          {isGenerating ? 'Generating stronger hooks...' : 'Generate 3 stronger options'}
-        </button>
-      )}
-
-      {error && (
-        <div className="p-lg bg-dark-surface border border-dark-border rounded-lg text-error text-sm mb-lg">
-          {error}
-          <button onClick={handleGenerateHooks} className="ml-md underline">
-            Retry
-          </button>
-        </div>
-      )}
-
-      {hooks && (
-        <div className="space-y-lg">
-          {hooks.map((hook, i) => (
-            <div key={i} className="bg-dark-surface border border-dark-border rounded-lg p-2xl animate-fade-in" style={{ animationDelay: `${0.8 + i * 0.1}s` }}>
-              <div className="flex justify-between items-start mb-lg">
-                <span className="text-xs font-medium text-accent-lime bg-dark-bg px-md py-sm rounded-full">
-                  {hook.style}
-                </span>
-                <button
-                  onClick={() => handleCopyHook(hook.hook)}
-                  className="btn-tertiary text-xs"
-                >
-                  Copy
-                </button>
-              </div>
-              <p className="text-lg font-light mb-lg italic text-text-primary">"{hook.hook}"</p>
-              <p className="text-sm text-text-secondary mb-md">{hook.whyItIsStronger}</p>
-              <p className="text-xs text-text-tertiary">Based on: {hook.basedOn}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function NextWeekPlanSection({ plan }: any) {
   return (
     <div className="animate-slide-up" style={{ animationDelay: '0.8s' }}>
-      <h2 className="text-3xl font-light mb-xl">Here's what I'd post next week</h2>
-      <p className="text-text-secondary mb-4xl">An exact creative brief based on your analysis.</p>
+      <h2 className="text-3xl font-light mb-4">Here's what I'd post next week</h2>
+      <p className="mb-16" style={{ color: colors.textSecondary }}>An exact creative brief based on your analysis.</p>
 
-      <div className="space-y-4xl">
+      <div className="space-y-16">
         <div>
-          <p className="text-xs text-text-tertiary mb-md">Video idea</p>
-          <p className="text-base leading-relaxed text-text-primary">{plan.videoIdea}</p>
+          <p className="text-xs mb-2" style={{ color: colors.textTertiary }}>Video idea</p>
+          <p className="text-base leading-relaxed" style={{ color: colors.textPrimary }}>{plan.videoIdea}</p>
         </div>
 
         <div>
-          <p className="text-xs text-text-tertiary mb-md">Hook (exact opening line)</p>
-          <p className="text-lg font-light italic text-accent-lime">"{plan.hook}"</p>
+          <p className="text-xs mb-2" style={{ color: colors.textTertiary }}>Hook (exact opening line)</p>
+          <p className="text-lg font-light italic" style={{ color: colors.lime }}>"{plan.hook}"</p>
         </div>
 
         <div>
-          <p className="text-xs text-text-tertiary mb-lg">Structure</p>
-          <div className="space-y-md">
+          <p className="text-xs mb-4" style={{ color: colors.textTertiary }}>Structure</p>
+          <div className="space-y-2">
             {plan.structure.map((step: any, i: number) => (
-              <div key={i} className="flex gap-lg">
-                <span className="text-sm font-medium text-accent-lime min-w-fit">{step.timeRange}</span>
-                <p className="text-sm text-text-secondary">{step.instruction}</p>
+              <div key={i} className="flex gap-4">
+                <span className="text-sm font-medium min-w-fit" style={{ color: colors.lime }}>{step.timeRange}</span>
+                <p className="text-sm" style={{ color: colors.textSecondary }}>{step.instruction}</p>
               </div>
             ))}
           </div>
         </div>
 
         <div>
-          <p className="text-xs text-text-tertiary mb-md">Call to action</p>
-          <p className="text-base text-text-primary">"{plan.cta}"</p>
+          <p className="text-xs mb-2" style={{ color: colors.textTertiary }}>Call to action</p>
+          <p className="text-base" style={{ color: colors.textPrimary }}>"{plan.cta}"</p>
         </div>
 
-        <div className="bg-dark-surface border border-accent-lime rounded-lg p-2xl">
-          <p className="text-xs text-accent-lime mb-md font-medium">Why this is the right test</p>
-          <p className="text-sm text-text-secondary leading-relaxed">{plan.whyThisTest}</p>
+        <div className="p-6 rounded border" style={{ backgroundColor: colors.surface, borderColor: colors.lime }}>
+          <p className="text-xs mb-3 font-medium" style={{ color: colors.lime }}>Why this is the right test</p>
+          <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>{plan.whyThisTest}</p>
         </div>
 
         <div>
-          <p className="text-xs text-text-tertiary mb-md">Primary metric to watch</p>
-          <p className="text-base font-medium text-text-primary">{plan.metricToWatch}</p>
+          <p className="text-xs mb-2" style={{ color: colors.textTertiary }}>Primary metric to watch</p>
+          <p className="text-base font-medium" style={{ color: colors.textPrimary }}>{plan.metricToWatch}</p>
         </div>
       </div>
     </div>
