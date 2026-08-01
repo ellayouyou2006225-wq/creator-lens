@@ -66,6 +66,44 @@ export interface CoachingReport {
   cannotConclude: string[]
   experiments: Experiment[]
   coachingBullets: string[]
+  performanceMetrics: PerformanceMetric[]
+  nextWeekPlan: NextWeekPlan
+}
+
+export interface PerformanceMetric {
+  name: string
+  strongValue: number
+  weakValue: number
+  unit: string
+  isPercentage: boolean
+  importance: number
+}
+
+export interface NextWeekPlan {
+  videoIdea: string
+  hook: string
+  structure: ContentStep[]
+  cta: string
+  whyThisTest: string
+  metricToWatch: string
+}
+
+export interface ContentStep {
+  timeRange: string
+  instruction: string
+}
+
+export interface HookGenerationRequest {
+  currentHook: string
+  strongHook: string
+  weakTopic: string
+  strongTopic: string
+  weakFormat: string
+  strongFormat: string
+  primaryGoal: string
+  biggestInsight: string
+  watchPercentageDifference: string
+  engagementDifference: string
 }
 
 export interface Strength {

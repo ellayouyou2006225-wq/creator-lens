@@ -256,6 +256,149 @@ export function identifyConfounders(strong: VideoInput, weak: VideoInput): strin
 }
 
 /**
+ * Generate recommended video structure for next week
+ */
+export function generateNextWeekPlan(
+  strong: VideoInput,
+  weak: VideoInput,
+  goal: string,
+  experiments: Experiment[]
+): any {
+  const strongMetrics = calculateDerivedMetrics(strong)
+  const weakMetrics = calculateDerivedMetrics(weak)
+
+  // Select the primary experiment to build on
+  const primaryExperiment = experiments[0]
+
+  // Construct the next week plan
+  const videoIdea = `Create a ${strong.topic} video in ${strong.format} format using the ${primaryExperiment?.change || 'improved hook'} approach that worked in your strongest video.`
+
+  const hook = strong.hook || primaryExperiment?.change || "I discovered something most people get wrong about this..."
+
+  // Create structure based on video length
+  const duration = strong.metrics.videoLengthSeconds || 45
+  const structure = []
+
+  if (duration <= 30) {
+    structure.push(
+      { timeRange: '0–3 sec', instruction: `Hook: "${hook}"` },
+      { timeRange: '3–15 sec', instruction: 'Explain the core insight or problem' },
+      { timeRange: '15–25 sec', instruction: 'Show the solution or lesson' },
+      { timeRange: '25–30 sec', instruction: 'Call to action' }
+    )
+  } else if (duration <= 60) {
+    structure.push(
+      { timeRange: '0–3 sec', instruction: `Hook: "${hook}"` },
+      { timeRange: '3–15 sec', instruction: 'Set up the context or story' },
+      { timeRange: '15–35 sec', instruction: 'Develop the idea with specific examples' },
+      { timeRange: '35–50 sec', instruction: 'Reveal the insight or lesson' },
+      { timeRange: '50–60 sec', instruction: 'Strong CTA' }
+    )
+  } else {
+    structure.push(
+      { timeRange: '0–5 sec', instruction: `Hook: "${hook}"` },
+      { timeRange: '5–20 sec', instruction: 'Establish credibility or context' },
+      { timeRange: '20–50 sec', instruction: 'Tell the story or develop the idea' },
+      { timeRange: '50–75 sec', instruction: 'Deliver the key insight' },
+      { timeRange: '75–90 sec', instruction: 'CTA and close' }
+    )
+  }
+
+  const cta = strong.cta || 'Follow for more insights'
+
+  const watchDiff = ((strongMetrics.watchPercentage - weakMetrics.watchPercentage) * 100).toFixed(0)
+  const whyThisTest = `Your strongest video used this hook and format, achieving ${(strongMetrics.watchPercentage * 100).toFixed(0)}% watch rate vs ${(weakMetrics.watchPercentage * 100).toFixed(0)}% for your weaker one. This test isolates the hook change while keeping topic and format consistent.`
+
+  const metricToWatch = primaryExperiment?.metricToWatch || 'Watch percentage'
+
+  return {
+    videoIdea,
+    hook,
+    structure,
+    cta,
+    whyThisTest,
+    metricToWatch,
+  }
+}
+
+/**
+ * Select most important performance metrics to compare visually
+ */
+export function selectPerformanceMetrics(
+  strong: VideoInput,
+  weak: VideoInput
+): any[] {
+  const strongMetrics = calculateDerivedMetrics(strong)
+  const weakMetrics = calculateDerivedMetrics(weak)
+
+  const candidates = []
+
+  // Watch percentage (most important)
+  if (strong.metrics.videoLengthSeconds && weak.metrics.videoLengthSeconds) {
+    candidates.push({
+      name: 'Watch percentage',
+      strongValue: strongMetrics.watchPercentage * 100,
+      weakValue: weakMetrics.watchPercentage * 100,
+      unit: '%',
+      isPercentage: true,
+      importance: 10,
+    })
+  }
+
+  // Engagement rate
+  if ((weak.metrics.likes || 0) + (weak.metrics.comments || 0) + (weak.metrics.shares || 0) > 0) {
+    candidates.push({
+      name: 'Engagement rate',
+      strongValue: strongMetrics.engagementRate * 100,
+      weakValue: weakMetrics.engagementRate * 100,
+      unit: '%',
+      isPercentage: true,
+      importance: 9,
+    })
+  }
+
+  // Share rate
+  if ((weak.metrics.shares || 0) > 0) {
+    candidates.push({
+      name: 'Share rate',
+      strongValue: strongMetrics.shareRate * 100,
+      weakValue: weakMetrics.shareRate * 100,
+      unit: '%',
+      isPercentage: true,
+      importance: 8,
+    })
+  }
+
+  // Follower conversion
+  if ((weak.metrics.newFollowers || 0) > 0) {
+    candidates.push({
+      name: 'Follower conversion',
+      strongValue: strongMetrics.followerConversionRate * 100,
+      weakValue: weakMetrics.followerConversionRate * 100,
+      unit: '%',
+      isPercentage: true,
+      importance: 8,
+    })
+  }
+
+  // Average watch time
+  if (strong.metrics.avgWatchTimeSeconds && weak.metrics.avgWatchTimeSeconds) {
+    candidates.push({
+      name: 'Average watch time',
+      strongValue: strong.metrics.avgWatchTimeSeconds,
+      weakValue: weak.metrics.avgWatchTimeSeconds,
+      unit: 'sec',
+      isPercentage: false,
+      importance: 7,
+    })
+  }
+
+  // Sort by importance and select top 3-4
+  candidates.sort((a, b) => b.importance - a.importance)
+  return candidates.slice(0, 4)
+}
+
+/**
  * Generate three specific experiments
  */
 export function generateExperiments(
