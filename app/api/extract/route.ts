@@ -220,8 +220,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Extractio
     const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
       },
       body: JSON.stringify({
         model: 'claude-opus-4-1',
@@ -270,11 +271,13 @@ Normalization rules:
     if (!anthropicResponse.ok) {
       const error = await anthropicResponse.json()
       console.error('Anthropic API error:', error)
+      console.error('API Key present:', !!apiKey)
+      console.error('API Key starts with:', apiKey?.substring(0, 10))
       return NextResponse.json(
         {
           success: false,
           metrics: {} as any,
-          error: 'Claude extraction failed',
+          error: 'Claude API call failed: ' + (error.error?.message || 'Unknown error'),
         },
         { status: 500 }
       )
