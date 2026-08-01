@@ -1,26 +1,145 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0f0f0f;
+  color: #f5f1e8;
 }
+
+/* Typography Hierarchy */
+@layer base {
+  h1 {
+    @apply text-5xl font-normal leading-tight tracking-tight;
+    color: #f5f1e8;
+  }
+
+  h2 {
+    @apply text-3xl font-normal leading-tight;
+    color: #f5f1e8;
+  }
+
+  h3 {
+    @apply text-2xl font-normal leading-snug;
+    color: #f5f1e8;
+  }
+
+  h4 {
+    @apply text-lg font-medium;
+    color: #f5f1e8;
+  }
+
+  p {
+    @apply text-base leading-relaxed;
+    color: #f5f1e8;
+  }
+
+  a {
+    @apply text-accent-lime hover:text-accent-lime-dark transition-colors;
+  }
+
+  button {
+    @apply transition-all duration-150;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply bg-dark-surface border border-dark-border rounded-base px-lg py-md text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-lime focus:border-transparent;
+  }
+}
+
+/* Component Tokens */
+@layer components {
+  .page-container {
+    @apply min-h-screen w-full bg-dark-bg;
+  }
+
+  .content-max-width {
+    @apply max-w-4xl mx-auto px-lg py-6xl;
+  }
+
+  .section-spacing {
+    @apply mb-5xl last:mb-0;
+  }
+
+  .btn-primary {
+    @apply px-2xl py-lg rounded-full bg-accent-lime text-dark-bg font-semibold hover:bg-accent-lime-dark focus:ring-2 focus:ring-accent-lime focus:ring-offset-2 focus:ring-offset-dark-bg transition-all disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply px-2xl py-lg rounded-full border border-text-secondary text-text-primary hover:border-accent-lime hover:text-accent-lime focus:ring-2 focus:ring-accent-lime focus:ring-offset-2 focus:ring-offset-dark-bg transition-all disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-tertiary {
+    @apply px-lg py-md text-text-secondary hover:text-accent-lime focus:ring-2 focus:ring-accent-lime focus:ring-offset-2 focus:ring-offset-dark-bg transition-all underline disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .card-surface {
+    @apply bg-dark-surface border border-dark-border rounded-lg p-2xl;
+  }
+
+  .input-label {
+    @apply block text-sm font-medium text-text-secondary mb-md;
+  }
+
+  .section-heading {
+    @apply text-2xl font-normal mb-2xl text-text-primary;
+  }
+
+  .section-subtitle {
+    @apply text-base text-text-secondary mb-xl;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    @apply !animate-none !transition-none;
+  }
+}
+
+/* Utility Animations */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
